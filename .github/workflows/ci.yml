@@ -48,4 +48,4 @@ jobs:
       # ⚠️ 因为注入了虚拟凭证，Provider 会初始化，但 plan 阶段不会真正去 AWS 创建资源
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false
+        run: terraform plan -no-color -input=false -refresh=false
