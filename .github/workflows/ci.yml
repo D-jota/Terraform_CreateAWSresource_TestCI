@@ -1,0 +1,51 @@
+# .github/workflows/terraform-ci.yml
+
+name: Terraform CI (No Apply)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  terraform-ci:
+    runs-on: ubuntu-latest
+    env:
+      # ⚠️ 核心技巧：注入虚拟凭证，欺骗 Provider 初始化，但不真实连接 AWS
+      AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE'
+      AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+      AWS_DEFAULT_REGION: 'us-east-1'
+      TF_IN_AUTOMATION: '1' # 告诉 Terraform 处于自动化环境，减少输出色码等干扰
+
+    steps:
+      # 1. 拉取代码
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. 安装 Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.x
+
+      # 3. Terraform 初始化 (下载 Provider 插件)
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+
+      # 4. Terraform 格式化检查
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+
+      # 5. Terraform 语法验证
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      # 6. Terraform 预览执行 (核心步骤)
+      # ⚠️ 因为注入了虚拟凭证，Provider 会初始化，但 plan 阶段不会真正去 AWS 创建资源
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -input=false
